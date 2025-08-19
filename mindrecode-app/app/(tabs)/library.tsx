@@ -2,36 +2,22 @@ import { Link } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-
-type RitualItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  slug: string;
-  duration: string;
-};
-
-const SAMPLE_RITUALS: RitualItem[] = [
-  { id: 'rapid-reset', title: 'Rapid Reset', subtitle: 'Vagus nerve resonance', slug: 'rapid-reset', duration: '3–7 min' },
-  { id: 'deep-sleep', title: 'Deep Sleep', subtitle: 'Slow waves + breath', slug: 'deep-sleep', duration: '10 min' },
-  { id: 'focus-gamma', title: 'Focus Gamma', subtitle: 'Flow + clarity', slug: 'focus-gamma', duration: '5 min' },
-  { id: 'kids-detox', title: 'Screen Detox (Kids)', subtitle: 'Eyes + breath reset', slug: 'kids-detox', duration: '4 min' },
-];
+import { rituals } from '@/app/data/rituals';
 
 export default function LibraryScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">Library</ThemedText>
       <FlatList
-        data={SAMPLE_RITUALS}
+        data={rituals}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <Link href={{ pathname: '/player', params: { ritual: item.slug } }} asChild>
             <Pressable style={styles.card}>
               <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-              <ThemedText>{item.subtitle}</ThemedText>
-              <ThemedText style={styles.duration}>{item.duration}</ThemedText>
+              <ThemedText>{item.description}</ThemedText>
+              <ThemedText style={styles.duration}>{item.recommendedDurations.map((d)=>`${Math.round(d/60)}m`).join(' / ')}</ThemedText>
             </Pressable>
           </Link>
         )}

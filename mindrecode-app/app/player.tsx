@@ -1,28 +1,61 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-
-const SAMPLE_RITUALS: Record<string, { title: string; steps: Array<{ kind: string; durationSec: number }> }> = {
-  'rapid-reset': { title: 'Rapid Reset: Vagus', steps: [ { kind: 'breath', durationSec: 60 }, { kind: 'audio', durationSec: 120 }, { kind: 'affirmation', durationSec: 30 } ] },
-  'deep-sleep': { title: 'Deep Sleep', steps: [ { kind: 'audio', durationSec: 600 } ] },
-  'focus-gamma': { title: 'Focus Gamma', steps: [ { kind: 'breath', durationSec: 30 }, { kind: 'audio', durationSec: 270 } ] },
-  'kids-detox': { title: 'Screen Detox (Kids)', steps: [ { kind: 'visual', durationSec: 60 }, { kind: 'breath', durationSec: 120 } ] },
-};
+import { getRitualBySlug } from '@/app/data/rituals';
+import { StepTimeline } from '@/components/ritual/StepTimeline';
+import { ProgressBar } from '@/components/ritual/ProgressBar';
+import { PlayerControls } from '@/components/ritual/PlayerControls';
+import { BreathCue } from '@/components/ritual/BreathCue';
 
 export default function PlayerScreen() {
   const params = useLocalSearchParams<{ ritual?: string }>();
+  const ritual = useMemo(() => getRitualBySlug(params.ritual ?? 'rapid-reset'), [params.ritual]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const ritual = useMemo(() => SAMPLE_RITUALS[params.ritual ?? 'rapid-reset'], [params.ritual]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!ritual) {
+    return (
+      <ThemedView style={styles.container}> 
+        <ThemedText>Ritual not found.</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  const currentStep = ritual.steps[currentIndex];
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">{ritual?.title ?? 'Ritual Player'}</ThemedText>
-      <ThemedText>{ritual ? `${ritual.steps.length} steps` : 'Sample player view'}</ThemedText>
-      <Pressable style={styles.cta} onPress={() => setIsPlaying((v) => !v)}>
-        <ThemedText type="defaultSemiBold">{isPlaying ? 'Pause' : 'Play'}</ThemedText>
-      </Pressable>
+      <ThemedText type="title">{ritual.title}</ThemedText>
+      <ThemedText>{ritual.description}</ThemedText>
+      <ProgressBar progress={(currentIndex + 1) / ritual.steps.length} />
+
+      <View style={styles.section}>
+        <StepTimeline steps={ritual.steps} currentIndex={currentIndex} />
+      </View>
+
+      <View style={styles.section}>
+        {currentStep?.kind === 'breath' && (
+          <BreathCue {...(currentStep.params as any)} />
+        )}
+        {currentStep?.kind === 'audio' && (
+          <ThemedText>Audio: {(currentStep.params as any)?.trackId ?? 'TBD'}</ThemedText>
+        )}
+        {currentStep?.kind === 'affirmation' && (
+          <ThemedText>Affirm: {(currentStep.params as any)?.text ?? 'I am safe. I am here.'}</ThemedText>
+        )}
+        {currentStep?.kind === 'visual' && (
+          <ThemedText>Visual cue placeholder</ThemedText>
+        )}
+      </View>
+
+      <PlayerControls
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying((v) => !v)}
+        onPrev={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+        onNext={() => setCurrentIndex((i) => Math.min(ritual.steps.length - 1, i + 1))}
+      />
     </ThemedView>
   );
 }
@@ -32,14 +65,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     gap: 12,
-    justifyContent: 'center',
   },
-  cta: {
-    padding: 16,
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)'
+  section: {
+    gap: 12,
   }
 });
 
